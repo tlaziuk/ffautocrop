@@ -1,0 +1,7 @@
+#! /usr/bin/env sh
+
+for file in "$@"
+do
+    crop=$(ffmpeg -i "$file" -t 1 -vf cropdetect -f null - 2>&1 | awk '/crop/ { print $NF }' | tail -1)
+    ffmpeg -i "$file" -vf "$crop" "${file%.*}.cropped.${file##*.}"
+done
