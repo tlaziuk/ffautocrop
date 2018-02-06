@@ -1,7 +1,30 @@
 #! /usr/bin/env sh
 
+COMMAND=()
+
 for file in "$@"
 do
-    crop=$(ffmpeg -i "$file" -t 1 -vf cropdetect -f null - 2>&1 | awk '/crop/ { print $NF }' | tail -1)
-    ffmpeg -i "$file" -vf "$crop" "${file%.*}.cropped.${file##*.}"
+    if [ -r "$file" ]
+    then
+        outname="${file%.*}.cropped"
+        outext="${file##*.}"
+        i=0
+        while [[ -e "${outname}-${i}.${outext}" ]]
+        do
+            let i++
+        done
+        out="${outname}-${i}.${outext}"
+        crop="ffmpeg -i $file -t 1 -vf cropdetect -f null - 2>&1 | awk '/crop/ { print \$NF }' | tail -1"
+        COMMAND+=("ffmpeg -i $file -vf \$($crop) $out")
+    fi
 done
+
+if command -v parallel
+then
+    parallel eval {} ::: "$COMMAND"
+else
+    for cmd in "$COMMAND"
+    do
+        eval "$cmd"
+    done
+fi
